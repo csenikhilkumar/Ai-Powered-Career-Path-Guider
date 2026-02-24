@@ -1,0 +1,10 @@
+.env
+/src/generated/prisma
+
+dist/
+*.tsbuildinfo
+/src/**/*.js
+/src/**/*.js.map
+/src/**/*.d.ts
+/src/**/*.d.ts.map
+/src/generated/

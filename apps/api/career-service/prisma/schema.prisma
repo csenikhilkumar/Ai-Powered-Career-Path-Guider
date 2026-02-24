@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@internal/prisma-career-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model CareerPath {
+  id              String   @id @default(uuid())
+  title           String
+  description     String?
+  category        String?
+  avgSalary       Decimal? @map("avg_salary")
+  growthRate      Decimal? @map("growth_rate")
+  difficulty      String?
+  
+  // Fields for frontend compatibility
+  matchScore      Int?     @default(0) @map("match_score")
+  salary          String?
+  growth          String?
+  demand          String?
+  growthSpeed     String?  @map("growth_speed")
+
+  requiredSkills  String?    @map("required_skills")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("career_paths")
+  roadmaps        Roadmap[]
+}
+
+model Roadmap {
+  id              String        @id @default(uuid())
+  careerPathId    String        @map("career_path_id")
+  careerPath      CareerPath    @relation(fields: [careerPathId], references: [id])
+  title           String
+  description     String?
+  items           RoadmapItem[]
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  userId          String?       @map("user_id") // Link to User from User Service
+  phases          Json?         @map("phases")
+
+  @@map("roadmaps")
+  @@index([userId])
+}
+
+model RoadmapItem {
+  id          String   @id @default(uuid())
+  roadmapId   String   @map("roadmap_id")
+  roadmap     Roadmap  @relation(fields: [roadmapId], references: [id])
+  title       String
+  description String?
+  status      String   @default("locked") // active, completed, locked
+  duration    String?
+  order       Int
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("roadmap_items")
+}

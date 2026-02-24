@@ -1,0 +1,214 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Databases
+  auth-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5436:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  career-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: career_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - career-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ai-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ai_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - ai-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for rate limiting and caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Services (Development Mode - mounting source)
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: auth-service
+    command: pnpm --filter auth-service start
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://neondb_owner:npg_rTDVkeb7GNA1@ep-delicate-mouse-a8kwyiy0-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&schema=auth
+      JWT_SECRET: your_jwt_secret_key_change_in_production
+      REFRESH_TOKEN_SECRET: your_refresh_token_secret_change_in_production
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    volumes:
+      - ./apps/api/auth-service:/app/apps/api/auth-service
+      - /app/node_modules
+
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: user-service
+    command: pnpm --filter user-service start
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DATABASE_URL: postgresql://neondb_owner:npg_rTDVkeb7GNA1@ep-delicate-mouse-a8kwyiy0-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&schema=user
+      JWT_SECRET: your_jwt_secret_key_change_in_production
+    depends_on:
+      user-db:
+        condition: service_healthy
+    volumes:
+      - ./apps/api/user-service:/app/apps/api/user-service
+      - /app/node_modules
+
+  career-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: career-service
+    command: pnpm --filter career-service start
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: postgresql://postgres:postgres@career-db:5432/career_db?schema=career
+      USER_SERVICE_URL: http://user-service:3002
+      JWT_SECRET: your_jwt_secret_key_change_in_production
+    depends_on:
+      career-db:
+        condition: service_healthy
+    volumes:
+      - ./apps/api/career-service:/app/apps/api/career-service
+      - /app/node_modules
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: ai-service
+    command: pnpm --filter ai-service start
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      # Database connection
+      DATABASE_URL: postgresql://neondb_owner:npg_rTDVkeb7GNA1@ep-delicate-mouse-a8kwyiy0-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&schema=ai
+      
+      # Grok API credentials (passed from host)
+      GROK_API_KEY: ${GROK_API_KEY}
+      GROK_API_URL: ${GROK_API_URL}
+      GROK_MODEL: ${GROK_MODEL}
+      
+      # Service dependencies
+      CAREER_SERVICE_URL: http://career-service:3003
+      JWT_SECRET: your_jwt_secret_key_change_in_production
+    depends_on:
+      ai-db:
+        condition: service_healthy
+      career-service:
+        condition: service_started
+    volumes:
+      - ./apps/api/ai-service:/app/apps/api/ai-service
+      - /app/node_modules
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: api-gateway
+    command: pnpm --filter api-gateway start
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3002
+      CAREER_SERVICE_URL: http://career-service:3003
+      AI_SERVICE_URL: http://ai-service:3004
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CORS_ORIGIN: http://localhost:5173
+    depends_on:
+      - auth-service
+      - user-service
+      - career-service
+      - ai-service
+      - redis
+    volumes:
+      - ./apps/api/api-gateway:/app/apps/api/api-gateway
+      - /app/node_modules
+
+volumes:
+  auth-db-data:
+  user-db-data:
+  career-db-data:
+  ai-db-data:
+  redis-data:

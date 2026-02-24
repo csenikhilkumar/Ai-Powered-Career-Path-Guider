@@ -1,0 +1,24 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "workspace": [
+    "ai-service",
+    "api-gateway",
+    "career-service",
+    "user-service",
+    "auth-service"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^7.3.0",
+    "@repo/typescript-config": "workspace:*",
+    "prisma": "^7.3.0"
+  }
+}
