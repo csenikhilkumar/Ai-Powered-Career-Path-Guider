@@ -11,10 +11,9 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5173,
     headers: {
-      // Required for Firebase Auth signInWithPopup (allows window.closed / window.close on popup)
       'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
-      'Cross-Origin-Embedder-Policy': 'unsafe-none',
     },
   },
 })

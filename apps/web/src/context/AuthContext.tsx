@@ -19,16 +19,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const initAuth = async () => {
             const token = storage.getToken();
-            if (token) {
-                if (token) {
-                    try {
-                        const user = await authApi.getCurrentUser();
-                        setUser(user);
-                    } catch (error) {
-                        console.error("Auth check failed", error);
-                        storage.clearToken();
-                    }
+            if (token && token !== 'undefined' && token !== 'null') {
+                try {
+                    const user = await authApi.getCurrentUser();
+                    setUser(user);
+                } catch (error) {
+                    console.error("Auth check failed", error);
+                    storage.clearToken();
                 }
+            } else if (token === 'undefined' || token === 'null') {
+                storage.clearToken();
             }
             setIsLoading(false);
         };
@@ -37,6 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const login = (token: string, userData: User) => {
+        if (!token || token === 'undefined') {
+            console.error("Attempted to login with invalid token");
+            return;
+        }
         storage.setToken(token);
         setUser(userData);
         window.location.href = '/dashboard';

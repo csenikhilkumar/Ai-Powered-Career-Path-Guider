@@ -1,6 +1,6 @@
 import { AppError } from "../utils/errors";
 import { authRepository } from "../repositories/auth.repository";
-import { comparePassword, generateAccessToken, hashPassword, verifyAccessToken } from "../utils/auth";
+import { comparePassword, generateAccessToken, generateRefreshToken, hashPassword, verifyAccessToken } from "../utils/auth";
 
 export const authService = {
   register: async (input: { email: string; password: string; firstName?: string; lastName?: string }) => {
@@ -17,10 +17,17 @@ export const authService = {
       lastName: input.lastName,
     });
 
-    const token = generateAccessToken({ userId: user.id, email: user.email, role: "USER" });
+    const accessToken = generateAccessToken({ userId: user.id, email: user.email, role: "USER" });
+    const refreshToken = generateRefreshToken({ userId: user.id });
+
+    // Store refresh token
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+    await authRepository.createRefreshToken({ userId: user.id, token: refreshToken, expiresAt });
 
     return {
-      token,
+      token: accessToken,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -39,10 +46,17 @@ export const authService = {
       throw new AppError("Invalid credentials", 401);
     }
 
-    const token = generateAccessToken({ userId: user.id, email: user.email, role: "USER" });
+    const accessToken = generateAccessToken({ userId: user.id, email: user.email, role: "USER" });
+    const refreshToken = generateRefreshToken({ userId: user.id });
+
+    // Store refresh token
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    await authRepository.createRefreshToken({ userId: user.id, token: refreshToken, expiresAt });
 
     return {
-      token,
+      token: accessToken,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -53,6 +67,27 @@ export const authService = {
         updatedAt: user.updatedAt.toISOString(),
       },
     };
+  },
+
+  refreshToken: async (token: string) => {
+    const storedToken = await authRepository.findRefreshToken(token);
+    if (!storedToken || storedToken.expiresAt < new Date()) {
+      if (storedToken) await authRepository.deleteRefreshToken(token);
+      throw new AppError("Invalid or expired refresh token", 401);
+    }
+
+    const { user } = storedToken;
+    const accessToken = generateAccessToken({ userId: user.id, email: user.email, role: "USER" });
+
+    // Optional: Rotate refresh token
+    const newRefreshToken = generateRefreshToken({ userId: user.id });
+    await authRepository.deleteRefreshToken(token);
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    await authRepository.createRefreshToken({ userId: user.id, token: newRefreshToken, expiresAt });
+
+    return { token: accessToken, refreshToken: newRefreshToken };
   },
 
   verifyToken: async (token?: string) => {
@@ -116,10 +151,17 @@ export const authService = {
       });
     }
 
-    const token = generateAccessToken({ userId: user.id, email: user.email, role: "USER" });
+    const accessToken = generateAccessToken({ userId: user.id, email: user.email, role: "USER" });
+    const refreshToken = generateRefreshToken({ userId: user.id });
+
+    // Store refresh token
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    await authRepository.createRefreshToken({ userId: user.id, token: refreshToken, expiresAt });
 
     return {
-      token,
+      token: accessToken,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -130,5 +172,21 @@ export const authService = {
         updatedAt: user.updatedAt.toISOString(),
       },
     };
+  },
+  changePassword: async (userId: string, currentPassword: string, newPassword: string) => {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    const isMatch = await comparePassword(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      throw new AppError("Incorrect current password", 401);
+    }
+
+    const newPasswordHash = await hashPassword(newPassword);
+    await authRepository.updateUserPassword(userId, newPasswordHash);
+
+    return { success: true };
   },
 };

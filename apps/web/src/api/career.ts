@@ -105,5 +105,11 @@ export const careerApi = {
     updateRoadmapItem: async (roadmapId: string, itemId: string, status: string) => {
         const response = await client.put<{ item: RoadmapItem }>(`/careers/roadmap/${roadmapId}/items/${itemId}`, { status });
         return response.data.item;
+    },
+
+    // Delete a roadmap
+    deleteRoadmap: async (id: string) => {
+        const response = await client.delete<{ message: string }>(`/careers/roadmap/${id}`);
+        return response.data;
     }
 };

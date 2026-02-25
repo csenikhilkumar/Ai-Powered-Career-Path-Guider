@@ -113,6 +113,7 @@ export function CareerDiscoveryWizard({ isOpen, onClose, onComplete }: WizardPro
     const [result, setResult] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [generatedRoadmapSteps, setGeneratedRoadmapSteps] = useState<any[] | null>(null);
+    const [rawRoadmapData, setRawRoadmapData] = useState<any>(null); // Store raw response
     const [selectedCareer, setSelectedCareer] = useState<any>(null); // Track selected career
 
     const handleNext = async () => {
@@ -166,10 +167,12 @@ export function CareerDiscoveryWizard({ isOpen, onClose, onComplete }: WizardPro
         try {
             const roadmapData = await aiApi.generateRoadmap({
                 careerPathTitle: career.title || career.role,
-                currentSkills: ["General Aptitude"],
+                currentSkills: [{ skillName: "General Aptitude", proficiency: "Beginner" }],
                 targetSkills: career.requiredSkills || [],
                 timeframe: "6 months"
             });
+
+            setRawRoadmapData(roadmapData);
 
             // Transform roadmap to WavyRoadmap format
             const wSteps = roadmapData.roadmap.phases.flatMap((phase: any) => {
@@ -369,7 +372,11 @@ export function CareerDiscoveryWizard({ isOpen, onClose, onComplete }: WizardPro
                                             size="lg"
                                             className="bg-purple-600 hover:bg-purple-500 text-white px-8 rounded-xl shadow-lg shadow-purple-500/25"
                                             onClick={() => {
-                                                if (onComplete) onComplete({ career: selectedCareer, roadmap: generatedRoadmapSteps });
+                                                if (onComplete) onComplete({
+                                                    career: selectedCareer,
+                                                    roadmap: rawRoadmapData, // Pass the raw data for the roadmap page
+                                                    rawRoadmap: generatedRoadmapSteps
+                                                });
                                                 onClose();
                                             }}
                                         >

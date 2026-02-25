@@ -78,8 +78,21 @@ export default function CareerList() {
         }
     };
 
-    const handleQuickAction = (role: string) => {
+    const handleQuickAction = (role: string, pregeneratedRoadmap?: any, careerRecommendation?: any) => {
         setSearchQuery(role);
+
+        if (pregeneratedRoadmap) {
+            navigate('/dashboard/career-roadmap', {
+                state: {
+                    result: pregeneratedRoadmap,
+                    careerTitle: role,
+                    careerRecommendation: careerRecommendation || pregeneratedRoadmap, // Fallback if careerRecommendation is missing
+                    userProfile: { name: 'User' }
+                }
+            });
+            return;
+        }
+
         setLoading(true);
         setTimeout(() => {
             const triggerSearch = async () => {
@@ -292,7 +305,7 @@ export default function CareerList() {
                 onClose={() => setIsWizardOpen(false)}
                 onComplete={(data) => {
                     if (data?.career?.title) {
-                        handleQuickAction(data.career.title);
+                        handleQuickAction(data.career.title, data.roadmap, data.career);
                     }
                 }}
             />

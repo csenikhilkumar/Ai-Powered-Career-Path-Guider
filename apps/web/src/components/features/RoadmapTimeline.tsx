@@ -75,32 +75,31 @@ export function RoadmapTimeline({ phases, title, className = '' }: RoadmapTimeli
                                             {/* Phase Header */}
                                             <div className={`flex items-center gap-3 mb-3 ${isEven ? 'justify-end' : 'justify-start'}`}>
                                                 <span className="text-xs font-bold tracking-wider uppercase text-purple-600 dark:text-purple-400 px-3 py-1 bg-purple-50 dark:bg-purple-900/20 rounded-full">
-                                                    {phase.duration}
+                                                    {phase.duration || 'Self-Paced'}
                                                 </span>
-                                                {index === 0 && <span className="animate-pulse w-2 h-2 rounded-full bg-green-500" />}
                                             </div>
 
-                                            <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-white dark:to-neutral-400 mb-3">
+                                            <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-white dark:to-neutral-400 mb-3">
                                                 {phase.title}
                                             </h3>
                                             <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6 leading-relaxed">
-                                                {phase.description}
+                                                {phase.description || phase.focus}
                                             </p>
 
                                             {/* Milestones / Topics with Staggered Animation */}
-                                            {(phase.milestones || phase.topics) && (
+                                            {(phase.milestones?.length > 0 || phase.topics?.length > 0) && (
                                                 <ul className={`space-y-2 ${isEven ? 'items-end' : 'items-start'} flex flex-col`}>
-                                                    {(phase.milestones || phase.topics?.map(t => t.name))?.map((item, idx) => (
+                                                    {(phase.milestones || phase.topics?.map(t => t.name || t.title))?.filter(Boolean).map((item, idx) => (
                                                         <motion.li
                                                             key={idx}
                                                             initial={{ opacity: 0, x: isEven ? 20 : -20 }}
                                                             whileInView={{ opacity: 1, x: 0 }}
                                                             transition={{ delay: 0.3 + (idx * 0.1) }}
-                                                            className={`text-sm text-neutral-600 dark:text-neutral-300 flex items-center gap-2 group/item`}
+                                                            className={`text-sm text-neutral-600 dark:text-neutral-300 flex items-center gap-2 group/item max-w-full`}
                                                         >
-                                                            {isEven || <CheckCircle className="w-4 h-4 text-green-500 group-hover/item:scale-125 transition-transform" />}
-                                                            <span className="group-hover/item:text-purple-600 transition-colors">{item}</span>
-                                                            {isEven && <CheckCircle className="w-4 h-4 text-green-500 group-hover/item:scale-125 transition-transform" />}
+                                                            {isEven || <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 group-hover/item:scale-125 transition-transform" />}
+                                                            <span className="group-hover/item:text-purple-600 transition-colors text-left line-clamp-2">{item}</span>
+                                                            {isEven && <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 group-hover/item:scale-125 transition-transform" />}
                                                         </motion.li>
                                                     ))}
                                                 </ul>

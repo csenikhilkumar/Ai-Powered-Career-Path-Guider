@@ -19,4 +19,36 @@ export const authRepository = {
       },
     });
   },
+
+  updateUserPassword: async (userId: string, passwordHash: string) => {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  },
+
+  createRefreshToken: async (data: { userId: string; token: string; expiresAt: Date }) => {
+    return prisma.refreshToken.create({
+      data: {
+        userId: data.userId,
+        token: data.token,
+        expiresAt: data.expiresAt,
+      },
+    });
+  },
+
+  findRefreshToken: async (token: string) => {
+    return prisma.refreshToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+  },
+
+  deleteRefreshToken: async (token: string) => {
+    return prisma.refreshToken.delete({ where: { token } });
+  },
+
+  deleteAllUserRefreshTokens: async (userId: string) => {
+    return prisma.refreshToken.deleteMany({ where: { userId } });
+  },
 };

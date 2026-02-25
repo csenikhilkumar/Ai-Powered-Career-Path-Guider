@@ -1,6 +1,7 @@
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
+import { Link } from 'react-router-dom';
 import { Bell, Search, Sun, Moon, Sparkles } from 'lucide-react';
 import { useUi } from '@/context/UiContext';
 
@@ -47,17 +48,17 @@ export function Navbar() {
                     <Bell className="h-5 w-5" />
                 </Button>
 
-                <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+                <Link to="/dashboard/settings" className="flex items-center gap-3 pl-4 border-l border-white/10 hover:bg-white/5 transition-colors rounded-xl pr-2 py-1 cursor-pointer">
                     <div className="text-right hidden sm:block">
-                        <p className="text-sm font-medium text-white">
+                        <p className="text-sm font-medium text-white transition-colors hover:text-purple-300">
                             {user?.firstName} {user?.lastName}
                         </p>
                         <p className="text-xs text-purple-300">{user?.role || 'Explorer'}</p>
                     </div>
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-purple-500/20">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-purple-500/20 hover:scale-105 transition-transform">
                         {user?.firstName?.[0]}
                     </div>
-                </div>
+                </Link>
             </div>
         </header>
     );

@@ -255,3 +255,42 @@ export const getUserRoadmaps = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+export const deleteRoadmap = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        // 1. Find roadmap and check ownership
+        const roadmap = await prisma.roadmap.findUnique({
+            where: { id: String(id) }
+        });
+
+        if (!roadmap) {
+            return res.status(404).json({ message: "Roadmap not found" });
+        }
+
+        if (roadmap.userId !== userId) {
+            return res.status(403).json({ message: "You don't have permission to delete this roadmap" });
+        }
+
+        // 2. Perform deletion (cascading RoadmapItem manually or use transaction)
+        await prisma.$transaction([
+            prisma.roadmapItem.deleteMany({
+                where: { roadmapId: String(id) }
+            }),
+            prisma.roadmap.delete({
+                where: { id: String(id) }
+            })
+        ]);
+
+        res.json({ message: "Roadmap deleted successfully" });
+    } catch (error) {
+        console.error('Error deleting roadmap:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};

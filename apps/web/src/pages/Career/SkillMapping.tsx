@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
-import { Compass, Brain, ArrowRight } from 'lucide-react';
+import { Compass, Brain, ArrowRight, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { careerApi, Roadmap } from '@/api/career';
 import { Button } from '@/components/ui/Button';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export default function SkillMapping() {
     const navigate = useNavigate();
@@ -28,19 +29,11 @@ export default function SkillMapping() {
     }, []);
 
     const handleCardClick = (roadmap: Roadmap) => {
-        // Construct the result object for CareerRoadmap.tsx
-        // It expects roadmap.phases for the timeline.
-        // We'll wrap the flat items into a single phase or try to reconstruct if we saved it differently.
-        // For now, we'll pass the roadmap object and update CareerRoadmap to handle it.
         navigate('/dashboard/career-roadmap', {
             state: {
                 result: {
                     roadmap: {
-                        // Pass items directly; CareerRoadmap handles items[] fallback
                         items: roadmap.items || [],
-                        // If phases exist as a field (saved roadmaps might have them), pass them.
-                        // We avoid passing [] if they don't exist to allow CareerRoadmap.tsx 
-                        // to correctly fall back to items[].
                         phases: (roadmap as any).phases,
                         totalDuration: 'Stored Path',
                     },
@@ -50,6 +43,36 @@ export default function SkillMapping() {
                 careerTitle: roadmap.title,
                 savedRoadmap: roadmap
             }
+        });
+    };
+
+    const handleDelete = (e: React.MouseEvent, roadmapId: string) => {
+        e.stopPropagation(); // Prevent card click navigation
+
+        toast('Delete Roadmap?', {
+            description: 'This will also remove associated job recommendations.',
+            action: {
+                label: 'Delete',
+                onClick: () => {
+                    const promise = careerApi.deleteRoadmap(roadmapId);
+
+                    toast.promise(promise, {
+                        loading: 'Deleting your roadmap...',
+                        success: () => {
+                            setRoadmaps(prev => prev.filter(r => r.id !== roadmapId));
+                            return 'Roadmap deleted successfully';
+                        },
+                        error: (err) => {
+                            console.error("Failed to delete roadmap", err);
+                            return 'Failed to delete roadmap. Please try again.';
+                        },
+                    });
+                }
+            },
+            cancel: {
+                label: 'Cancel',
+                onClick: () => { }
+            },
         });
     };
 
@@ -137,6 +160,12 @@ export default function SkillMapping() {
                                         <span className="text-gray-500 font-medium">Profile Match</span>
                                         <span className="text-emerald-400 font-bold">{roadmap.careerPath?.matchScore || 85}%</span>
                                     </div>
+                                    <button
+                                        onClick={(e) => handleDelete(e, roadmap.id)}
+                                        className="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all font-bold text-xs"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" /> Delete Roadmap
+                                    </button>
                                 </div>
 
                                 <div className="pt-6 border-t border-white/5 flex items-center justify-between group">

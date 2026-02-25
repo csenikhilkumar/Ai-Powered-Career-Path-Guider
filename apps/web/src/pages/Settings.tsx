@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { User, Bell, Shield, LogOut, Save, Lock, Check } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { authApi } from '@/api/auth';
 import { userApi, UserProfile } from '@/api/user';
 import { motion } from 'framer-motion';
 
@@ -11,7 +12,10 @@ export default function Settings() {
     const [isLoading, setIsLoading] = useState(false);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [message, setMessage] = useState('');
+    const [passwordMessage, setPasswordMessage] = useState({ text: '', type: '' });
     const [activeTab, setActiveTab] = useState('profile');
+    const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
 
     useEffect(() => {
         const loadProfile = async () => {
@@ -48,6 +52,36 @@ export default function Settings() {
             setMessage('Failed to update profile');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordMessage({ text: '', type: '' });
+
+        if (passwords.new !== passwords.confirm) {
+            setPasswordMessage({ text: 'New passwords do not match', type: 'error' });
+            return;
+        }
+
+        if (passwords.new.length < 6) {
+            setPasswordMessage({ text: 'New password must be at least 6 characters', type: 'error' });
+            return;
+        }
+
+        setIsChangingPassword(true);
+        try {
+            await authApi.changePassword(passwords.current, passwords.new);
+            setPasswordMessage({ text: 'Password successfully changed', type: 'success' });
+            setPasswords({ current: '', new: '', confirm: '' });
+            setTimeout(() => setPasswordMessage({ text: '', type: '' }), 4000);
+        } catch (err: any) {
+            setPasswordMessage({
+                text: err.response?.data?.message || 'Failed to change password. Please check your current password.',
+                type: 'error'
+            });
+        } finally {
+            setIsChangingPassword(false);
         }
     };
 
@@ -255,11 +289,59 @@ export default function Settings() {
                                         </div>
                                         <div className="flex-1">
                                             <h3 className="font-semibold text-white mb-2">Password</h3>
-                                            <p className="text-sm text-purple-300 mb-4">Last changed 30 days ago</p>
-                                            <Button variant="outline" disabled className="border-white/20 text-purple-300">
-                                                Change Password
-                                            </Button>
-                                            <p className="text-xs text-purple-400 mt-2">Password management is handled via Auth Service</p>
+                                            <p className="text-sm text-purple-300 mb-4">Update your password to keep your account secure</p>
+
+                                            <form onSubmit={handleChangePassword} className="space-y-4 max-w-md mt-4">
+                                                <div>
+                                                    <label className="text-xs font-medium text-purple-200 mb-1 block">Current Password</label>
+                                                    <Input
+                                                        type="password"
+                                                        value={passwords.current}
+                                                        onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                                                        placeholder="Enter current password"
+                                                        className="bg-white/5 border-white/10 text-white placeholder:text-purple-300/50"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-medium text-purple-200 mb-1 block">New Password</label>
+                                                    <Input
+                                                        type="password"
+                                                        value={passwords.new}
+                                                        onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                                                        placeholder="Create new password"
+                                                        className="bg-white/5 border-white/10 text-white placeholder:text-purple-300/50"
+                                                        required
+                                                        minLength={6}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-medium text-purple-200 mb-1 block">Confirm New Password</label>
+                                                    <Input
+                                                        type="password"
+                                                        value={passwords.confirm}
+                                                        onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                                                        placeholder="Confirm new password"
+                                                        className="bg-white/5 border-white/10 text-white placeholder:text-purple-300/50"
+                                                        required
+                                                        minLength={6}
+                                                    />
+                                                </div>
+
+                                                {passwordMessage.text && (
+                                                    <div className={`p-3 rounded-lg text-sm border ${passwordMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-red-500/10 border-red-500/30 text-red-300'}`}>
+                                                        {passwordMessage.text}
+                                                    </div>
+                                                )}
+
+                                                <Button
+                                                    type="submit"
+                                                    loading={isChangingPassword}
+                                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white mt-2"
+                                                >
+                                                    Update Password
+                                                </Button>
+                                            </form>
                                         </div>
                                     </div>
                                 </div>

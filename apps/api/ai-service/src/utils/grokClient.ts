@@ -239,7 +239,7 @@ Be encouraging but realistic. Provide actionable insights.
         Skills: ${JSON.stringify(request.currentSkills)} -> ${request.targetSkills.join(', ')}
 
         Requirements:
-        1. Generate 8-10 distinct phases.
+        1. Generate exactly 6 distinct phases.
         2. Each phase must have a title, duration, focus, and description.
         3. Include 1 key topic per phase with 1 resource.
 
@@ -452,9 +452,16 @@ Be encouraging but realistic. Provide actionable insights.
      */
     private safeJsonParse(raw: string): any {
         try {
+            if (!raw) throw new Error('Empty AI response');
+
             const trimmed = raw.trim();
 
-            // Remove markdown code fences
+            // 1. Try direct parse first
+            try {
+                return JSON.parse(trimmed);
+            } catch (e) { }
+
+            // 2. Remove markdown code fences and try again
             const withoutFences = trimmed
                 .replace(/^```(?:json)?\s*/i, '')
                 .replace(/\s*```$/i, '')
@@ -462,32 +469,43 @@ Be encouraging but realistic. Provide actionable insights.
 
             try {
                 return JSON.parse(withoutFences);
-            } catch {
-                // Try to extract JSON object if embedded in text or prefixed with "Response: "
-                const firstBrace = withoutFences.indexOf('{');
-                const lastBrace = withoutFences.lastIndexOf('}');
+            } catch (e) { }
 
-                if (firstBrace >= 0 && lastBrace > firstBrace) {
-                    const candidate = withoutFences.slice(firstBrace, lastBrace + 1);
+            // 3. Try to extract JSON from within text (find first { and last })
+            const firstBrace = withoutFences.indexOf('{');
+            const lastBrace = withoutFences.lastIndexOf('}');
+
+            if (firstBrace >= 0 && lastBrace > firstBrace) {
+                const candidate = withoutFences.slice(firstBrace, lastBrace + 1);
+                try {
                     return JSON.parse(candidate);
+                } catch (internalError: any) {
+                    logger.error(`JSON candidate extraction failed: ${internalError.message}`);
+                    // If it failed, maybe it's truncated. Let's try to fix trailing commas or missing closing braces if we were brave,
+                    // but for now, we'll just log it.
+                    throw internalError;
                 }
-
-                // If no braces, maybe it's "Response: { ... }" but firstBrace should caught that
-                // Just in case, try removing common prefixes
-                const cleaned = withoutFences
-                    .replace(/^Response:\s*/i, '')
-                    .trim();
-
-                if (cleaned !== withoutFences) {
-                    return JSON.parse(cleaned);
-                }
-
-                throw new Error('No valid JSON found in response');
             }
-        } catch (error) {
-            logger.error('JSON parsing failed:', error);
-            logger.error('Raw response content length: ' + (raw ? raw.length : 0));
-            return { error: 'Failed to parse AI response', raw };
+
+            // 4. Try removing common "Response: " or "AI: " prefixes
+            const cleaned = withoutFences
+                .replace(/^(?:Response|AI|Assistant):\s*/i, '')
+                .trim();
+
+            if (cleaned !== withoutFences) {
+                try {
+                    return JSON.parse(cleaned);
+                } catch (e) { }
+            }
+
+            throw new Error('No valid JSON structure found in AI response');
+        } catch (error: any) {
+            logger.error('JSON parsing failed:', error.message);
+            logger.error(`Raw response length: ${raw?.length || 0}`);
+            logger.debug(`Raw content sample: ${raw?.slice(0, 100)}...${raw?.slice(-100)}`);
+
+            // Re-throw to be caught by the calling method's fallback
+            throw error;
         }
     }
 

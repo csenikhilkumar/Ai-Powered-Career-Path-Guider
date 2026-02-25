@@ -43,3 +43,18 @@ export const getMe: RequestHandler = asyncHandler(async (req: Request, res: Resp
     res.json({ user });
 });
 
+export const changePassword: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
+    const userId = (req as any).userId;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Current and new password are required' });
+    }
+
+    const result = await authService.changePassword(userId, currentPassword, newPassword);
+    res.json(result);
+});
