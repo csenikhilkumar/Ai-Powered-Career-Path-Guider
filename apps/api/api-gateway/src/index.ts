@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
 import routes from "./routes";
 import { config } from "./config";
 import { rateLimiter } from "./middlewares/rateLimiter.middleware";
@@ -29,7 +30,18 @@ app.get("/health", (req, res) => {
 
 app.use("/api/v1", routes);
 
-app.use(notFound);
+// Serve frontend in production (Docker container)
+if (process.env.NODE_ENV === "production") {
+  const frontendDistPath = path.join(__dirname, "../../../web/dist");
+  app.use(express.static(frontendDistPath));
+
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(frontendDistPath, "index.html"));
+  });
+} else {
+  app.use(notFound);
+}
+
 app.use(errorHandler);
 
 app.listen(PORT, () => {
