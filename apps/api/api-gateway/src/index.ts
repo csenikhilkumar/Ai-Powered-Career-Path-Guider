@@ -44,6 +44,6 @@ if (process.env.NODE_ENV === "production") {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   logger.info(`API Gateway running on port ${PORT}`);
 });
