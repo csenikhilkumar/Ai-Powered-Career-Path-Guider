@@ -183,7 +183,7 @@ function DesktopWavyRoadmap({ steps, className, onStepClick }: WavyRoadmapProps)
     );
 }
 
-function getIconForStatus(status: string, index: number, total: number) {
+function getIconForStatus(_status: string, index: number, _total: number) {
     if (index === 0) return <CheckCircle size={32} strokeWidth={2} />; // Assessment
     if (index === 1) return <Monitor size={32} strokeWidth={2} />; // Online Courses
     if (index === 2) return <BookOpen size={32} strokeWidth={2} />; // Academic

@@ -83,13 +83,13 @@ export function RoadmapTimeline({ phases, title, className = '' }: RoadmapTimeli
                                                 {phase.title}
                                             </h3>
                                             <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6 leading-relaxed">
-                                                {phase.description || phase.focus}
+                                                {phase.description}
                                             </p>
 
                                             {/* Milestones / Topics with Staggered Animation */}
-                                            {(phase.milestones?.length > 0 || phase.topics?.length > 0) && (
+                                            {((phase.milestones && phase.milestones.length > 0) || (phase.topics && phase.topics.length > 0)) && (
                                                 <ul className={`space-y-2 ${isEven ? 'items-end' : 'items-start'} flex flex-col`}>
-                                                    {(phase.milestones || phase.topics?.map(t => t.name || t.title))?.filter(Boolean).map((item, idx) => (
+                                                    {(phase.milestones || phase.topics?.map(t => typeof t === 'string' ? t : t.name))?.filter(Boolean).map((item, idx) => (
                                                         <motion.li
                                                             key={idx}
                                                             initial={{ opacity: 0, x: isEven ? 20 : -20 }}

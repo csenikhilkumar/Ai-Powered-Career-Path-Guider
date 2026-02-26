@@ -12,8 +12,8 @@ export function useCareerPaths(filters?: CareerFilters) {
             try {
                 setLoading(true);
                 setError(null);
-                const data = await careerApi.getCareerPaths(filters);
-                setCareerPaths(data);
+                const data = await careerApi.getCareers();
+                setCareerPaths(data as unknown as CareerPath[]);
             } catch (err: any) {
                 setError(err.response?.data?.message || 'Failed to fetch career paths');
                 console.error('Error fetching career paths:', err);

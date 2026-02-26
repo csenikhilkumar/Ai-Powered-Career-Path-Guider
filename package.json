@@ -4,6 +4,7 @@
   "description": "Microservices backend for AI-powered career guidance",
   "scripts": {
     "start": "./start-backend.sh",
+    "build": "pnpm -r run build",
     "stop": "docker-compose down",
     "logs": "docker-compose logs -f",
     "logs:api": "docker-compose logs -f api-gateway",
@@ -27,6 +28,7 @@
   "devDependencies": {
     "@railway/cli": "^4.30.5",
     "dotenv": "^17.3.1",
-    "tsconfig-paths": "^4.2.0"
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.3"
   }
 }
