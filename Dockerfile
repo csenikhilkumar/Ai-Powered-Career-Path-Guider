@@ -10,7 +10,12 @@ FROM base AS builder
 WORKDIR /app
 COPY . .
 # Install all dependencies including workspaces
+# Setting PRISMA_GENERATE_DATAPROXY to false ensures the binary is downloaded
+ENV PRISMA_GENERATE_DATAPROXY=false
+ENV PRISMA_CLI_QUERY_ENGINE_TYPE=library
 RUN pnpm install --frozen-lockfile
+# Force Prisma to generate its clients explicitly across all packages before TS compilation
+RUN pnpm --filter "*-service" exec npx prisma generate
 # Generate Prisma clients and build TypeScript code
 RUN pnpm run build
 
