@@ -55,22 +55,27 @@ const transports: winston.transport[] = [
   new winston.transports.Console({
     format: consoleFormat,
   }),
-  // Error file transport
-  new winston.transports.File({
-    filename: path.join(logDir, 'error.log'),
-    level: 'error',
-    format: fileFormat,
-    maxsize: 5242880, // 5MB
-    maxFiles: 5,
-  }),
-  // Combined file transport
-  new winston.transports.File({
-    filename: path.join(logDir, 'combined.log'),
-    format: fileFormat,
-    maxsize: 5242880, // 5MB
-    maxFiles: 5,
-  }),
 ];
+
+if (process.env.NODE_ENV !== 'production') {
+  transports.push(
+    // Error file transport
+    new winston.transports.File({
+      filename: path.join(logDir, 'error.log'),
+      level: 'error',
+      format: fileFormat,
+      maxsize: 5242880, // 5MB
+      maxFiles: 5,
+    }),
+    // Combined file transport
+    new winston.transports.File({
+      filename: path.join(logDir, 'combined.log'),
+      format: fileFormat,
+      maxsize: 5242880, // 5MB
+      maxFiles: 5,
+    })
+  );
+}
 
 // Create logger instance
 export const logger = winston.createLogger({
