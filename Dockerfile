@@ -1,4 +1,6 @@
 FROM node:20-slim AS base
+# Prisma requires OpenSSL to be installed on Debian slim images
+RUN apt-get update -y && apt-get install -y openssl
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
