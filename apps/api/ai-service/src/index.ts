@@ -9,7 +9,7 @@ import { errorHandler, notFoundHandler } from './utils/errorHandler';
 import logger, { stream } from './utils/logger';
 
 const app: Express = express();
-const PORT = process.env.PORT || 3004;
+const PORT = process.env.AI_PORT || 3004;
 
 // Middleware
 app.use(cors());

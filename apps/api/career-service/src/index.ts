@@ -6,7 +6,7 @@ import careerRoutes from "./routes/career.routes";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.CAREER_PORT || 3003;
 
 app.use(cors());
 app.use(express.json());
