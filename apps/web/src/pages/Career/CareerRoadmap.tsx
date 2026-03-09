@@ -3,18 +3,19 @@ import { Button } from '@/components/ui/Button';
 import { RoadmapTimeline } from '@/components/features/RoadmapTimeline';
 import { ArrowLeft, Save, Sparkles, Share2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { careerApi } from '@/api/career';
 
 export default function CareerRoadmap() {
     const location = useLocation();
     const navigate = useNavigate();
     const { result, careerTitle: stateTitle, userProfile, careerRecommendation, savedRoadmap } = location.state || {};
+    const [localSavedRoadmap, setLocalSavedRoadmap] = useState<any>(savedRoadmap);
     const [isSaving, setIsSaving] = useState(false);
 
     // If we have a saved roadmap, we use its data
-    const activeRoadmap = savedRoadmap || result?.roadmap;
-    const activeTitle = savedRoadmap?.title || stateTitle;
+    const activeRoadmap = localSavedRoadmap || result?.roadmap;
+    const activeTitle = localSavedRoadmap?.title || stateTitle;
 
     if (!activeRoadmap) {
         return (
@@ -78,10 +79,20 @@ export default function CareerRoadmap() {
         }];
     }
 
-    const handleSaveRoadmap = async () => {
+    const hasInitialMisfireRef = useRef(false);
+
+    useEffect(() => {
+        // Auto-save unsaved roadmaps in the background as soon as we land here
+        if (!localSavedRoadmap && result && !isSaving && !hasInitialMisfireRef.current) {
+            hasInitialMisfireRef.current = true;
+            handleSaveRoadmap(true); // true = silent background save
+        }
+    }, [localSavedRoadmap, result, isSaving]);
+
+    const handleSaveRoadmap = async (silent: boolean = false) => {
         setIsSaving(true);
         try {
-            let targetRoadmap = savedRoadmap;
+            let targetRoadmap = localSavedRoadmap;
 
             if (!targetRoadmap) {
                 // Flatten phases into a linear list of items (initially without IDs)
@@ -125,16 +136,20 @@ export default function CareerRoadmap() {
                     phases: activeRoadmap.phases
                 });
 
+                setLocalSavedRoadmap(targetRoadmap);
                 localStorage.setItem('currentCareerGoal', activeTitle);
                 window.dispatchEvent(new Event('career-goal-update'));
+                window.dispatchEvent(new Event('roadmap-saved')); // Notify SkillMapping to re-fetch
             }
 
-            // Navigate using the full roadmap object from DB (which has IDs)
-            navigate(`/dashboard/career-journey/${targetRoadmap.id}`, {
-                state: {
-                    roadmap: targetRoadmap
-                }
-            });
+            // Only navigate if it's an explicit manual save OR the user clicked "Start Journey" which is not silent
+            if (!silent) {
+                navigate(`/dashboard/career-journey/${targetRoadmap.id}`, {
+                    state: {
+                        roadmap: targetRoadmap
+                    }
+                });
+            }
         } catch (error) {
             console.error("Failed to save roadmap", error);
         } finally {
@@ -159,11 +174,11 @@ export default function CareerRoadmap() {
                         </Button>
                         <Button
                             className="bg-purple-600 hover:bg-purple-500"
-                            onClick={handleSaveRoadmap}
-                            disabled={isSaving || !!savedRoadmap}
+                            onClick={() => handleSaveRoadmap(false)}
+                            disabled={isSaving || !!localSavedRoadmap}
                         >
                             <Save className="mr-2 h-4 w-4" />
-                            {isSaving ? 'Saving...' : savedRoadmap ? 'Saved' : 'Save Path'}
+                            {isSaving ? 'Saving...' : localSavedRoadmap ? 'Saved' : 'Save Path'}
                         </Button>
                     </div>
                 </div>
@@ -179,7 +194,7 @@ export default function CareerRoadmap() {
                     >
                         <div className="p-2 px-4 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-sm font-medium">
                             <Sparkles className="inline-block w-4 h-4 mr-2" />
-                            {savedRoadmap ? 'Saved Roadmap' : `AI-Generated for ${userProfile?.name || 'You'}`}
+                            {localSavedRoadmap ? 'Saved Roadmap' : `AI-Generated for ${userProfile?.name || 'You'}`}
                         </div>
                         {userProfile?.timeCommitment && (
                             <div className="p-2 px-4 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 text-sm font-medium capitalize">
@@ -222,7 +237,7 @@ export default function CareerRoadmap() {
                         <Button
                             size="lg"
                             className="bg-white text-black hover:bg-gray-200 px-8 py-6 text-lg rounded-full font-bold"
-                            onClick={handleSaveRoadmap}
+                            onClick={() => handleSaveRoadmap(false)}
                         >
                             Start Journey Now <ArrowRight className="ml-2 h-5 w-5" />
                         </Button>

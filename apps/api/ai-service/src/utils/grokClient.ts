@@ -47,7 +47,7 @@ export class GrokClient {
     private apiKey: string;
     private baseURL: string;
     private readonly model: string = process.env.GROK_MODEL || 'apifreellm';
-    private readonly maxRetries: number = 3;
+    private readonly maxRetries: number = 4;
 
     constructor(config?: GrokConfig) {
         this.apiKey = config?.apiKey ||
@@ -274,7 +274,7 @@ Be encouraging but realistic. Provide actionable insights.
         `;
 
         try {
-            return await this.makeRequest(prompt, 0.5);
+            return await this.makeRequest(prompt, 0.5, true, 0, 2000); // 2000 tokens for roadmap
         } catch (error) {
             console.error('Failed to generate roadmap from AI, falling back to mock data:', error);
             return this.getMockRoadmap(request);
@@ -352,7 +352,7 @@ Be encouraging but realistic. Provide actionable insights.
         `;
 
         try {
-            return await this.makeRequest(prompt, 0.7);
+            return await this.makeRequest(prompt, 0.7, true, 0, 1500); // 1500 tokens = faster response
         } catch (error) {
             console.error('Failed to analyze career path from AI, falling back to mock data:', error);
             return this.getMockCareerAnalysis(answers);
@@ -386,19 +386,19 @@ Be encouraging but realistic. Provide actionable insights.
                 if (response.status === 429) {
                     console.warn(`API Rate Limit Exceeded: ${errorText}`);
 
-                    let retryAfter = 5; // Enforce minimum 5s wait
+                    let retryAfter = 2; // Minimum 2s wait (reduced from 5s)
                     try {
                         const errorJson = JSON.parse(errorText);
                         if (errorJson.retryAfter) {
                             const apiWait = parseInt(errorJson.retryAfter, 10);
-                            retryAfter = Math.max(5, apiWait + 2); // Use API wait + 2s, but minimum 5s
+                            retryAfter = Math.max(2, apiWait); // Use API wait, minimum 2s
                         }
                     } catch (e) {
                         // ignore parsing error
                     }
 
-                    if (retries < 7) { // Increase max retries to 7
-                        console.log(`Waiting ${retryAfter}s before retrying (Attempt ${retries + 1}/7)...`);
+                    if (retries < 4) { // Max 4 retries for rate limit
+                        console.log(`Waiting ${retryAfter}s before retrying (Attempt ${retries + 1}/4)...`);
                         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
                         return this.makeRequest(prompt, temperature, expectJson, retries + 1, maxTokens);
                     }
@@ -434,10 +434,10 @@ Be encouraging but realistic. Provide actionable insights.
             // Retry on Network Errors (fetch failed) or 5xx Server Errors
             const isNetworkError = (error.message && (error.message.includes('fetch failed') || error.message.includes('ETIMEDOUT') || error.message.includes('ECONNREFUSED')));
 
-            if (retries < 7) {
-                // Exponential backoff for errors
-                const delay = Math.pow(2, retries) * 2000 + 1000; // 3s, 5s, 9s, 17s...
-                console.log(`Retrying after error in ${delay}ms...`);
+            if (retries < 4) { // Max 4 retries for network errors
+                // Exponential backoff for timeouts/network errors
+                const delay = Math.pow(2, retries) * 1500 + 1000; // 2.5s, 4s, 7s, 13s
+                console.log(`Retrying after error in ${delay}ms (attempt ${retries + 1}/4)...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return this.makeRequest(prompt, temperature, expectJson, retries + 1, maxTokens);
             }

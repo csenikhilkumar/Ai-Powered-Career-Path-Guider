@@ -26,6 +26,10 @@ export default function SkillMapping() {
         };
 
         fetchRoadmaps();
+
+        // Re-fetch when a roadmap is saved from CareerRoadmap page
+        window.addEventListener('roadmap-saved', fetchRoadmaps);
+        return () => window.removeEventListener('roadmap-saved', fetchRoadmaps);
     }, []);
 
     const handleCardClick = (roadmap: Roadmap) => {
