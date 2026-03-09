@@ -41,7 +41,7 @@ export function RoadmapTimeline({ phases, title, className = '' }: RoadmapTimeli
 
             <div className="relative max-w-4xl mx-auto">
                 {/* Animated Vertical Line */}
-                <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-1.5 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
+                <div className="absolute left-8 md:left-1/2 transform -translate-x-1/2 h-full w-1.5 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
                     <motion.div
                         initial={{ height: "0%" }}
                         whileInView={{ height: "100%" }}
@@ -61,10 +61,10 @@ export function RoadmapTimeline({ phases, title, className = '' }: RoadmapTimeli
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true, margin: "-100px" }}
                                 transition={{ duration: 0.6, type: "spring", stiffness: 50 }}
-                                className={`relative flex items-center justify-between ${isEven ? 'flex-row' : 'flex-row-reverse'}`}
+                                className={`relative flex items-center justify-between flex-row md:${isEven ? 'flex-row' : 'flex-row-reverse'}`}
                             >
                                 {/* Content Card */}
-                                <div className={`w-5/12 ${isEven ? 'text-right' : 'text-left'}`}>
+                                <div className={`w-full pl-20 pr-4 py-8 md:p-0 md:w-5/12 md:${isEven ? 'text-right' : 'text-left'}`}>
                                     <motion.div
                                         whileHover={{ scale: 1.05, rotateY: isEven ? 5 : -5 }}
                                         className="relative group perspective-1000"
@@ -109,7 +109,7 @@ export function RoadmapTimeline({ phases, title, className = '' }: RoadmapTimeli
                                 </div>
 
                                 {/* Center Icon */}
-                                <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center">
+                                <div className="absolute left-8 md:left-1/2 transform -translate-x-1/2 flex items-center justify-center">
                                     <motion.div
                                         initial={{ scale: 0, rotate: -180 }}
                                         whileInView={{ scale: 1, rotate: 0 }}
@@ -129,7 +129,7 @@ export function RoadmapTimeline({ phases, title, className = '' }: RoadmapTimeli
                                 </div>
 
                                 {/* Spacer for layout balance */}
-                                <div className="w-5/12" />
+                                <div className="hidden md:block md:w-5/12" />
                             </motion.div>
                         );
                     })}

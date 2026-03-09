@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/Button';
 import { Search, Sparkles, ArrowRight, Compass, Code, Palette, LineChart, Zap, Flame, Star, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CareerDiscoveryWizard } from '@/components/features/CareerDiscoveryWizard';
+import { toast } from 'sonner';
 
 export default function CareerList() {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
-    const [loading, setLoading] = useState(false);
+
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState('All');
 
@@ -33,8 +34,9 @@ export default function CareerList() {
         if (e) e.preventDefault();
         if (!searchQuery.trim()) return;
 
-        setLoading(true);
-        try {
+        setSearchQuery(''); // Clear input
+
+        const generatePromise = async () => {
             const { AiInteraction } = await import('@/api/ai');
             const { userApi } = await import('@/api/user');
 
@@ -71,16 +73,17 @@ export default function CareerList() {
                 }
             });
 
-        } catch (error) {
-            console.error("Failed to generate AI roadmap", error);
-        } finally {
-            setLoading(false);
-        }
+            return topCareer.title;
+        };
+
+        toast.promise(generatePromise(), {
+            loading: `Designing blueprint for ${searchQuery}... (You can navigate away, we'll notify you when ready!)`,
+            success: (title) => `Roadmap for ${title} is ready!`,
+            error: 'Failed to generate roadmap. Please try again.',
+        });
     };
 
     const handleQuickAction = (role: string, pregeneratedRoadmap?: any, careerRecommendation?: any) => {
-        setSearchQuery(role);
-
         if (pregeneratedRoadmap) {
             navigate('/dashboard/career-roadmap', {
                 state: {
@@ -93,48 +96,48 @@ export default function CareerList() {
             return;
         }
 
-        setLoading(true);
-        setTimeout(() => {
-            const triggerSearch = async () => {
-                try {
-                    const { AiInteraction } = await import('@/api/ai');
-                    const { userApi } = await import('@/api/user');
+        const triggerSearch = async () => {
+            const { AiInteraction } = await import('@/api/ai');
+            const { userApi } = await import('@/api/user');
 
-                    let userSkills: any[] = [];
-                    let userName = 'User';
-                    try {
-                        const profile = await userApi.getProfile();
-                        userSkills = profile.skills?.map(s => ({ skillName: s, proficiency: 'Beginner' })) || [];
-                        userName = profile.firstName || 'User';
-                    } catch (e) { }
+            let userSkills: any[] = [];
+            let userName = 'User';
+            try {
+                const profile = await userApi.getProfile();
+                userSkills = profile.skills?.map(s => ({ skillName: s, proficiency: 'Beginner' })) || [];
+                userName = profile.firstName || 'User';
+            } catch (e) { }
 
-                    const analysis = await AiInteraction.analyzeCareerPath({
-                        interests: [role],
-                        preferences: { role: role }
-                    });
-                    const topCareer = analysis.recommendations[0] || { title: role };
+            const analysis = await AiInteraction.analyzeCareerPath({
+                interests: [role],
+                preferences: { role: role }
+            });
+            const topCareer = analysis.recommendations[0] || { title: role };
 
-                    const roadmapData = await AiInteraction.generateRoadmap({
-                        careerPathTitle: topCareer.title,
-                        currentSkills: userSkills,
-                        targetSkills: topCareer.requiredSkills || [],
-                        timeframe: '6 months'
-                    });
+            const roadmapData = await AiInteraction.generateRoadmap({
+                careerPathTitle: topCareer.title,
+                currentSkills: userSkills,
+                targetSkills: topCareer.requiredSkills || [],
+                timeframe: '6 months'
+            });
 
-                    navigate('/dashboard/career-roadmap', {
-                        state: {
-                            result: roadmapData,
-                            careerTitle: topCareer.title,
-                            careerRecommendation: topCareer,
-                            userProfile: { name: userName }
-                        }
-                    });
-                } finally {
-                    setLoading(false);
+            navigate('/dashboard/career-roadmap', {
+                state: {
+                    result: roadmapData,
+                    careerTitle: topCareer.title,
+                    careerRecommendation: topCareer,
+                    userProfile: { name: userName }
                 }
-            };
-            triggerSearch();
-        }, 0);
+            });
+
+            return topCareer.title;
+        };
+
+        toast.promise(triggerSearch(), {
+            loading: `Designing blueprint for ${role}... (You can navigate away, we'll notify you when ready!)`,
+            success: (title) => `Roadmap for ${title} is ready!`,
+            error: 'Failed to generate roadmap. Please try again.',
+        });
     };
 
     const filteredRoles = activeFilter === 'All'
@@ -191,20 +194,12 @@ export default function CareerList() {
                             />
                             <Button
                                 type="submit"
-                                disabled={loading}
                                 className="h-14 px-8 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-lg shadow-xl shadow-purple-900/20 transition-all active:scale-95"
                             >
-                                {loading ? (
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        <span>Designing...</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-2">
-                                        <span>Generate</span>
-                                        <ArrowRight className="w-5 h-5" />
-                                    </div>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    <span>Generate</span>
+                                    <ArrowRight className="w-5 h-5" />
+                                </div>
                             </Button>
                         </form>
                     </div>

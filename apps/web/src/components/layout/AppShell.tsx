@@ -8,8 +8,11 @@ import { useState, useEffect } from 'react';
 import { UiProvider, useUi } from '@/context/UiContext';
 import { AiAssistantModal } from '@/components/dashboard/AiAssistantModal';
 
+import { X } from 'lucide-react';
+
 function AppContent() {
     const { isAiModalOpen, closeAiModal } = useUi();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     return (
         <div className="flex h-screen overflow-hidden gradient-surface relative text-neutral-900 dark:text-white">
@@ -27,10 +30,19 @@ function AppContent() {
                 />
             </div>
 
-            <Sidebar />
-            <div className="flex flex-1 flex-col overflow-hidden relative z-10">
-                <Navbar />
-                <main className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth">
+            {/* Mobile Sidebar Overlay */}
+            {isMobileMenuOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
+            <Sidebar isMobileOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+            <div className="flex flex-1 flex-col overflow-hidden relative z-10 w-full">
+                {/* Mobile Header Toggle built directly into AppShell header area or passed to Navbar */}
+                <Navbar onMenuClick={() => setIsMobileMenuOpen(true)} />
+                <main className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth w-full">
                     <Outlet />
                 </main>
             </div>
@@ -57,7 +69,7 @@ const allNavigation = [
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ isMobileOpen, onClose }: { isMobileOpen?: boolean; onClose?: () => void }) {
     const location = useLocation();
     const { logout } = useAuth();
     const [showSkillMapping, setShowSkillMapping] = useState(false);
@@ -104,12 +116,22 @@ export function Sidebar() {
     });
 
     return (
-        <div className="hidden lg:flex h-screen w-72 flex-col border-r border-white/10 glass-strong relative z-20">
-            <div className="flex h-20 items-center px-6 gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <Brain className="h-5 w-5 text-white" />
+        <div className={cn(
+            "fixed inset-y-0 left-0 z-50 h-screen w-72 flex-col border-r border-white/10 glass-strong transition-transform duration-300 ease-in-out lg:relative lg:flex lg:translate-x-0",
+            isMobileOpen ? "flex translate-x-0" : "-translate-x-full"
+        )}>
+            <div className="flex h-20 items-center justify-between px-6 gap-3">
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                        <Brain className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="text-xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">PathGuide</span>
                 </div>
-                <span className="text-xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">PathGuide</span>
+                {isMobileOpen && (
+                    <button onClick={onClose} className="lg:hidden p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10">
+                        <X className="w-5 h-5" />
+                    </button>
+                )}
             </div>
 
             <div className="flex flex-1 flex-col gap-2 px-4 py-6">

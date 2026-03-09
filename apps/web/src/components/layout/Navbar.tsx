@@ -2,18 +2,23 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { Link } from 'react-router-dom';
-import { Bell, Search, Sun, Moon, Sparkles } from 'lucide-react';
+import { Bell, Search, Sun, Moon, Sparkles, Menu } from 'lucide-react';
 import { useUi } from '@/context/UiContext';
 
-export function Navbar() {
+export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
     const { user } = useAuth();
     const { theme, setTheme } = useTheme();
     const { openAiModal } = useUi();
 
     return (
-        <header className="flex h-20 items-center justify-between border-b border-white/10 glass-strong px-8 relative z-20">
-            {/* ... search ... */}
-            <div className="flex flex-1 items-center gap-4">
+        <header className="flex h-20 items-center justify-between border-b border-white/10 glass-strong px-4 md:px-8 relative z-20 gap-4">
+            {/* Mobile Menu Toggle */}
+            <Button variant="ghost" size="icon" className="lg:hidden rounded-lg hover:bg-white/10 text-purple-200" onClick={onMenuClick}>
+                <Menu className="h-6 w-6" />
+            </Button>
+
+            {/* Search */}
+            <div className="flex flex-1 items-center gap-2 md:gap-4">
                 <div className="relative w-full max-w-md">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-300" />
                     <input

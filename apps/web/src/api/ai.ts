@@ -32,8 +32,29 @@ export const aiApi = {
     },
 
     generateResources: async (params: { careerPathTitle: string, currentStage: string, interests: string[] }) => {
+        // Create a unique cache key based on the specific path and current progress level
+        const cacheKey = `ai_resources_${params.careerPathTitle.replace(/[^a-zA-Z0-9]/g, '')}_${params.currentStage.replace(/[^a-zA-Z0-9]/g, '')}`;
+
+        try {
+            const cachedData = localStorage.getItem(cacheKey);
+            if (cachedData) {
+                console.log(`[AI Cache] Loaded resources for ${params.careerPathTitle} from local storage`);
+                return JSON.parse(cachedData);
+            }
+        } catch (e) {
+            console.warn("[AI Cache] Failed to read from local storage", e);
+        }
+
         const response = await client.post<{ data: any }>('/ai/resources', params);
-        return response.data.data;
+        const data = response.data.data;
+
+        try {
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+        } catch (e) {
+            console.warn("[AI Cache] Failed to write to local storage", e);
+        }
+
+        return data;
     }
 };
 
