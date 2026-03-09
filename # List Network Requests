@@ -1,0 +1,5 @@
+# List Network Requests
+
+| reqid | method | url | status |
+|---|---|---|---|
+| 262 | GET | http://localhost:5173/auth/login | failed - 304 |

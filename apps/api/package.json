@@ -17,8 +17,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^7.3.0",
+    "@prisma/client": "^5.10.2",
     "@repo/typescript-config": "workspace:*",
-    "prisma": "^7.3.0"
+    "prisma": "^5.10.2"
   }
 }
