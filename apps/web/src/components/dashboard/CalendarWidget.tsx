@@ -10,7 +10,13 @@ interface CalendarDay {
     fullDate: Date;
 }
 
-export function CalendarWidget() {
+export interface CalendarEvent {
+    date: Date;
+    title: string;
+    time: string;
+}
+
+export function CalendarWidget({ events = [] }: { events?: CalendarEvent[] }) {
     const [selectedDate] = useState<Date | null>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -51,11 +57,17 @@ export function CalendarWidget() {
             month === today.getMonth() &&
             year === today.getFullYear();
 
+        const hasCustomEvent = events.some(e =>
+            e.date.getDate() === i &&
+            e.date.getMonth() === month &&
+            e.date.getFullYear() === year
+        );
+
         calendarDays.push({
             date: i,
             isCurrentMonth: true,
             isToday,
-            hasEvent: isToday || i === 15 || i === 22, // Mock events
+            hasEvent: isToday || hasCustomEvent || (events.length === 0 && (i === 15 || i === 22)), // fallback mock
             fullDate: new Date(year, month, i)
         });
     }
@@ -237,20 +249,36 @@ export function CalendarWidget() {
             <div className="mt-6 pt-6 border-t border-white/10">
                 <h5 className="text-sm font-semibold text-white mb-3">Upcoming Events</h5>
                 <div className="space-y-2">
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
-                        <div className="h-2 w-2 rounded-full bg-purple-400 mt-1.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white font-medium truncate">Career Review</p>
-                            <p className="text-xs text-purple-300">Today at 3:00 PM</p>
-                        </div>
-                    </div>
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
-                        <div className="h-2 w-2 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white font-medium truncate">Skill Assessment</p>
-                            <p className="text-xs text-purple-300">Tomorrow at 10:00 AM</p>
-                        </div>
-                    </div>
+                    {events.length > 0 ? (
+                        events.map((evt, idx) => (
+                            <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+                                <div className={`h-2 w-2 rounded-full ${idx % 2 === 0 ? 'bg-purple-400' : 'bg-blue-400'} mt-1.5 flex-shrink-0`} />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-white font-medium truncate">{evt.title}</p>
+                                    <p className="text-xs text-purple-300">
+                                        {evt.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {evt.time}
+                                    </p>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <>
+                            <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+                                <div className="h-2 w-2 rounded-full bg-purple-400 mt-1.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-white font-medium truncate">Career Review</p>
+                                    <p className="text-xs text-purple-300">Today at 3:00 PM</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+                                <div className="h-2 w-2 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-white font-medium truncate">Skill Assessment</p>
+                                    <p className="text-xs text-purple-300">Tomorrow at 10:00 AM</p>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </motion.div>

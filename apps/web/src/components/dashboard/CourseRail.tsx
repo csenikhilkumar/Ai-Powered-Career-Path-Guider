@@ -1,7 +1,8 @@
 import { Card } from '@/components/ui/Card';
 import { MoreHorizontal } from 'lucide-react';
+import { useVideoTracking } from '@/hooks/useVideoTracking';
 
-const courses = [
+const defaultCourses = [
     {
         title: 'Figma Pro',
         desc: 'Advanced prototyping techniques',
@@ -21,11 +22,15 @@ const courses = [
         desc: 'Unlock the power of symbols',
         bg: 'bg-yellow-50 dark:bg-yellow-900/10',
         icon: '💎',
-        tags: ['Sketch', 'Vector']
+        tags: ['Sketch', 'Vector'],
+        url: ''
     }
 ];
 
-export function CourseRail() {
+export function CourseRail({ courses: propCourses }: { courses?: any[] }) {
+    const coursesToRender = propCourses && propCourses.length > 0 ? propCourses : defaultCourses;
+    const { startWatching } = useVideoTracking();
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -34,11 +39,15 @@ export function CourseRail() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {courses.map(course => (
-                    <Card key={course.title} className={`${course.bg} border-none p-5 transition-transform hover:scale-[1.02]`}>
+                {coursesToRender.map((course: any, idx: number) => (
+                    <Card key={idx} className={`${course.bg || 'bg-white/5'} border-none p-5 transition-transform hover:scale-[1.02] cursor-pointer`}
+                        onClick={() => {
+                            if (course.url) startWatching(course.url);
+                        }}
+                    >
                         <div className="mb-3 flex items-start justify-between">
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xl shadow-sm dark:bg-dark-surface">
-                                {course.icon}
+                                {course.icon || '📚'}
                             </div>
                             <button className="text-neutral-400 hover:text-neutral-600">
                                 <MoreHorizontal className="h-5 w-5" />
@@ -49,7 +58,7 @@ export function CourseRail() {
                         <p className="mb-4 text-xs text-neutral-500 dark:text-neutral-400">{course.desc}</p>
 
                         <div className="flex gap-2">
-                            {course.tags.map(tag => (
+                            {(course.tags || []).map((tag: string) => (
                                 <span key={tag} className="rounded-md bg-white/60 px-2 py-1 text-[10px] font-bold text-neutral-600 dark:bg-black/20 dark:text-neutral-300">
                                     {tag}
                                 </span>

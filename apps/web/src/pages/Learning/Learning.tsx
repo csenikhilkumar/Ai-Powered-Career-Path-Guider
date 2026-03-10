@@ -6,6 +6,7 @@ import { aiApi } from '@/api/ai';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { BookOpen, Map, Search, Loader2, PlayCircle, Newspaper, ExternalLink } from 'lucide-react';
+import { useVideoTracking } from '@/hooks/useVideoTracking';
 
 export default function Learning() {
     const navigate = useNavigate();
@@ -14,6 +15,7 @@ export default function Learning() {
     const [resources, setResources] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [resourcesLoading, setResourcesLoading] = useState(false);
+    const { startWatching } = useVideoTracking();
 
     useEffect(() => {
         const loadRoadmaps = async () => {
@@ -170,7 +172,7 @@ export default function Learning() {
                                             </p>
                                         </div>
                                         <Button
-                                            onClick={() => window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(video.title)}`, '_blank')}
+                                            onClick={() => startWatching(`https://www.youtube.com/results?search_query=${encodeURIComponent(video.title)}`)}
                                             className="w-full bg-white/5 hover:bg-red-600 text-white border border-white/10 hover:border-red-500 transition-all font-bold"
                                         >
                                             Watch Now <ExternalLink className="ml-2 w-4 h-4" />

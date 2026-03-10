@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Search, Sparkles, ArrowRight, Compass, Code, Palette, LineChart, Zap, Flame, Star, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,10 +8,20 @@ import { toast } from 'sonner';
 
 export default function CareerList() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [searchQuery, setSearchQuery] = useState('');
 
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState('All');
+
+    useEffect(() => {
+        if (location.state?.autoSearch) {
+            const query = location.state.autoSearch;
+            // clean up the state so it doesn't re-trigger on refresh
+            window.history.replaceState({}, document.title);
+            handleQuickAction(query);
+        }
+    }, [location.state]);
 
     const categories = [
         { name: 'All', icon: <Compass className="w-4 h-4" /> },

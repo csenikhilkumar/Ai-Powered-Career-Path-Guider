@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Search, Sun, Moon, Sparkles, Menu } from 'lucide-react';
 import { useUi } from '@/context/UiContext';
 
@@ -9,6 +10,15 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
     const { user } = useAuth();
     const { theme, setTheme } = useTheme();
     const { openAiModal } = useUi();
+    const navigate = useNavigate();
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && searchQuery.trim()) {
+            navigate('/dashboard/careers', { state: { autoSearch: searchQuery.trim() } });
+            setSearchQuery('');
+        }
+    };
 
     return (
         <header className="flex h-20 items-center justify-between border-b border-white/10 glass-strong px-4 md:px-8 relative z-20 gap-4">
@@ -24,6 +34,9 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
                     <input
                         type="text"
                         placeholder="Search careers, skills, or paths..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={handleSearch}
                         className="h-11 w-full rounded-2xl border border-white/10 bg-white/5 pl-10 pr-4 text-sm text-white placeholder-purple-300/50 outline-none transition-all focus:border-purple-500/50 focus:bg-white/10 focus:ring-2 focus:ring-purple-500/20"
                     />
                 </div>

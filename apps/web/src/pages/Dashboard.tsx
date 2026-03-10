@@ -9,6 +9,7 @@ import { SkillTracker } from '@/components/dashboard/SkillTracker';
 import { CalendarWidget } from '@/components/dashboard/CalendarWidget';
 import { JobCard } from '@/components/dashboard/JobCard';
 import { CourseRail } from '@/components/dashboard/CourseRail';
+import { useVideoTracking } from '@/hooks/useVideoTracking';
 
 // Mock data for fallback
 const MOCK_CAREERS: Career[] = [
@@ -50,28 +51,111 @@ export default function Dashboard() {
     const { user } = useAuth();
     const { openAiModal } = useUi();
     const [careers, setCareers] = useState<Career[]>(MOCK_CAREERS);
-    // Removed loading state to force immediate render
+
+    // Dynamic Dashboard State
+    const [dashboardStats, setDashboardStats] = useState({
+        completedLessons: 0,
+        learningHours: 0,
+        goalProgress: 0,
+        certifications: 0
+    });
+    const [isLoading, setIsLoading] = useState(true);
+    const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+    const [skillsList, setSkillsList] = useState<any[]>([]);
+    const [jobData, setJobData] = useState<any>(null);
+    const [courseData, setCourseData] = useState<any[]>([]);
+    const { extraHours } = useVideoTracking();
 
     useEffect(() => {
         const loadData = async () => {
-            // Fetch in background
             try {
-                // Add a timeout to prevent indefinite loading
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Request timed out')), 2000)
-                );
+                // 1. Fetch user roadmaps
+                const roadmaps = await careerApi.getUserRoadmaps();
+                const active = roadmaps?.length > 0 ? roadmaps[0] : null;
 
-                const careerData = await Promise.race([
-                    careerApi.getCareers(),
-                    timeoutPromise
-                ]) as Career[];
+                if (active) {
+                    // Compute Stats
+                    const items = active.items || [];
+                    const totalLessons = items.length;
+                    const completed = items.filter((i: any) => i.status === 'completed').length;
+                    const progress = totalLessons > 0 ? Math.round((completed / totalLessons) * 100) : 0;
 
-                if (careerData && careerData.length > 0) {
-                    setCareers(careerData);
+                    // Only count hours for completed lessons, not the entire roadmap
+                    const computedCompletedHours = items.filter((i: any) => i.status === 'completed').reduce((acc: number, curr: any) => acc + (curr.estimatedHours || 5), 0);
+
+                    setDashboardStats({
+                        completedLessons: completed,
+                        learningHours: computedCompletedHours,
+                        goalProgress: progress,
+                        certifications: progress > 80 ? 1 : 0
+                    });
+
+                    // Build skills from progress
+                    const mappedSkills = [
+                        { name: 'Core Foundations', percent: Math.min(100, progress + 15), color: 'bg-emerald-400' },
+                        { name: 'Technical Skills', percent: progress, color: 'bg-blue-400' },
+                        { name: 'Advanced Concepts', percent: Math.max(0, progress - 20), color: 'bg-purple-400' },
+                    ];
+                    setSkillsList(mappedSkills);
+
+                    // Build calendar events from upcoming/current items
+                    const upcoming = items.filter((i: any) => i.status === 'upcoming' || i.status === 'current').slice(0, 2);
+                    if (upcoming.length > 0) {
+                        const evt1 = new Date();
+                        evt1.setDate(evt1.getDate() + 1);
+                        const evt2 = new Date();
+                        evt2.setDate(evt2.getDate() + 3);
+
+                        setCalendarEvents([
+                            {
+                                date: evt1,
+                                title: upcoming[0]?.title || 'Next Lesson',
+                                time: '10:00 AM'
+                            },
+                            {
+                                date: evt2,
+                                title: upcoming[1]?.title || 'Milestone Review',
+                                time: '2:00 PM'
+                            }
+                        ]);
+                    }
+
+                    // Async AI fetch for Jobs and Courses
+                    const stage = progress > 70 ? "Advanced" : progress > 30 ? "Intermediate" : "Beginner";
+                    import('@/api/ai').then(({ aiApi }) => {
+                        aiApi.generateResources({
+                            careerPathTitle: active.title,
+                            currentStage: `Currently at ${progress}% progress (${stage})`,
+                            interests: []
+                        }).then((data: any) => {
+                            if (data) {
+                                if (data.jobSearchQueries && data.jobSearchQueries.length > 0) {
+                                    setJobData(data.jobSearchQueries[0]);
+                                }
+                                if (data.youtubeVideos && data.youtubeVideos.length > 0) {
+                                    setCourseData(data.youtubeVideos.slice(0, 3).map((v: any) => ({
+                                        title: v.title,
+                                        desc: v.channel || 'YouTube',
+                                        bg: 'bg-purple-50 dark:bg-purple-900/10',
+                                        icon: '▶️',
+                                        tags: ['Video', 'Tutorial'],
+                                        url: `https://www.youtube.com/results?search_query=${encodeURIComponent(v.title)}`
+                                    })));
+                                }
+                            }
+                        }).catch(err => console.error("AI Fetch error", err));
+                    });
                 }
+
+                // Fallback Careers
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), 2000));
+                const careerData = await Promise.race([careerApi.getCareers(), timeoutPromise]) as Career[];
+                if (careerData && careerData.length > 0) setCareers(careerData);
+
             } catch (err) {
                 console.log("Dashboard: Using offline mode (API error or timeout)", err);
-                // Keep MOCK_CAREERS
+            } finally {
+                setIsLoading(false);
             }
         };
         loadData();
@@ -147,7 +231,7 @@ export default function Dashboard() {
                                 </span>
                             </div>
                             <div>
-                                <h3 className="text-3xl font-bold text-white">46</h3>
+                                <h3 className="text-3xl font-bold text-white">{dashboardStats.completedLessons}</h3>
                                 <p className="text-sm text-purple-300/70">Lessons Completed</p>
                             </div>
                         </div>
@@ -167,7 +251,7 @@ export default function Dashboard() {
                                 </span>
                             </div>
                             <div>
-                                <h3 className="text-3xl font-bold text-white">127h</h3>
+                                <h3 className="text-3xl font-bold text-white">{Math.round(dashboardStats.learningHours + extraHours)}h</h3>
                                 <p className="text-sm text-blue-300/70">Learning Hours</p>
                             </div>
                         </div>
@@ -187,7 +271,7 @@ export default function Dashboard() {
                                 </span>
                             </div>
                             <div>
-                                <h3 className="text-3xl font-bold text-white">89%</h3>
+                                <h3 className="text-3xl font-bold text-white">{dashboardStats.goalProgress}%</h3>
                                 <p className="text-sm text-pink-300/70">Goal Progress</p>
                             </div>
                         </div>
@@ -207,7 +291,7 @@ export default function Dashboard() {
                                 </span>
                             </div>
                             <div>
-                                <h3 className="text-3xl font-bold text-white">12</h3>
+                                <h3 className="text-3xl font-bold text-white">{dashboardStats.certifications}</h3>
                                 <p className="text-sm text-amber-300/70">Certifications</p>
                             </div>
                         </div>
@@ -219,37 +303,58 @@ export default function Dashboard() {
                     {/* Calendar Widget - Large */}
                     <div className="lg:col-span-8">
                         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-1 shadow-2xl shadow-purple-500/10 h-full">
-                            <CalendarWidget />
+                            <CalendarWidget events={calendarEvents} />
                         </div>
                     </div>
 
                     {/* Skill Tracker - Sidebar */}
                     <div className="lg:col-span-4">
                         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-1 shadow-2xl shadow-blue-500/10 h-full">
-                            <SkillTracker />
+                            <SkillTracker skills={skillsList.length > 0 ? skillsList : undefined} />
                         </div>
                     </div>
 
                     {/* Featured Job Card */}
                     <div className="lg:col-span-6">
-                        <div className="backdrop-blur-xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-3xl p-1 shadow-2xl shadow-pink-500/10">
-                            {featuredJob && (
+                        <div className="backdrop-blur-xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-3xl p-1 shadow-2xl shadow-pink-500/10 h-full">
+                            {isLoading ? (
+                                <div className="p-6 space-y-4 animate-pulse">
+                                    <div className="h-6 w-1/3 bg-white/10 rounded-lg"></div>
+                                    <div className="h-4 w-1/2 bg-white/10 rounded-lg"></div>
+                                    <div className="h-10 w-full bg-white/10 rounded-xl mt-4"></div>
+                                </div>
+                            ) : jobData ? (
+                                <JobCard
+                                    title={jobData.query}
+                                    salary={jobData.salary || '$80k-120k'}
+                                    company={jobData.company || "Leading Tech Co"}
+                                    location={jobData.location || "Remote"}
+                                    url={jobData.url}
+                                />
+                            ) : featuredJob ? (
                                 <JobCard
                                     title={featuredJob.title}
                                     salary={(featuredJob.salary || '').replace(' - ', '-')}
                                     company="Tech Corp"
                                     location="Remote"
                                 />
-                            )}
-                            {!featuredJob && <JobCard />}
+                            ) : <JobCard />}
                         </div>
                     </div>
                 </div>
 
                 {/* Course Rail */}
                 <div>
-                    <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-1 shadow-2xl shadow-blue-500/10">
-                        <CourseRail />
+                    <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-6 shadow-2xl shadow-purple-500/10">
+                        {isLoading ? (
+                            <div className="animate-pulse flex space-x-6">
+                                <div className="h-32 w-1/3 bg-white/10 rounded-2xl"></div>
+                                <div className="h-32 w-1/3 bg-white/10 rounded-2xl hidden md:block"></div>
+                                <div className="h-32 w-1/3 bg-white/10 rounded-2xl hidden lg:block"></div>
+                            </div>
+                        ) : (
+                            <CourseRail courses={courseData.length > 0 ? courseData : undefined} />
+                        )}
                     </div>
                 </div>
             </div>
